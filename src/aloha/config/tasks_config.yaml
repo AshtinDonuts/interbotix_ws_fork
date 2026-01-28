@@ -60,3 +60,25 @@ tasks:
   lego_insert_v2:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert_v2"  
     episode_len: 400
+
+  plug_insert:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_insert"  
+    episode_len: 600
+
+  ## FOAM TEST for visualizing contact-based forces
+  foam_test:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/foam_test"  
+    episode_len: 300
+
+
+##### SPLICE ACT ######
+
+  ## RED THEN ORANGE PICK AND PLACE
+  orange_red_pnp:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/orange_red_pnp"  
+    episode_len: 600
+
+  ## RED BLOCK PICK AND PLACE
+  red_pnp:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/red_pnp"  
+    episode_len: 250

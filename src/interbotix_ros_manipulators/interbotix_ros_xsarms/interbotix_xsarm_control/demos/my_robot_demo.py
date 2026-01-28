@@ -39,11 +39,12 @@ Note that this script may not work for every arm as it was designed for the wx25
 Make sure to adjust commanded joint positions and poses as necessary.
 
 To get started, open a terminal and type:
-    ros2 launch interbotix_xsarm_control xsarm_control.launch.py robot_model:=aloha_vx300s
+    ros2 launch interbotix_xsarm_control xsarm_control.launch.py use_sim:=true robot_model:=aloha_vx300s
 
 Then change to this directory and type:
 
-    python3 ee_cartesian_trajectory.py
+    python3 my_robot_demo.py --robot_model aloha_vx300s
+
 """
 
 
@@ -73,5 +74,13 @@ def main():
 
 
 if __name__ == '__main__':
-    
+    import argparse
+    parser = argparse.ArgumentParser(description="Draw a Cartesian square with an Interbotix X-Series arm.")
+    parser.add_argument(
+        "--robot_model",
+        type=str,
+        default="aloha_vx300s",
+        help="Interbotix robot model, e.g. 'wx250' or 'vx300s'",
+    )
+    args, unknown = parser.parse_known_args()
     main()
