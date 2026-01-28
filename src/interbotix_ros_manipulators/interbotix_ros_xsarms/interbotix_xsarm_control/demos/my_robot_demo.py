@@ -42,7 +42,6 @@ To get started, open a terminal and type:
     ros2 launch interbotix_xsarm_control xsarm_control.launch.py use_sim:=true robot_model:=aloha_vx300s
 
 Then change to this directory and type:
-
     python3 my_robot_demo.py --robot_model aloha_vx300s
 
 """
