@@ -71,7 +71,7 @@ tasks:
     episode_len: 300
 
 
-##### SPLICE ACT ######
+##### SKILL ACT ######
 
   ## RED THEN ORANGE PICK AND PLACE
   orange_red_pnp:
@@ -82,3 +82,22 @@ tasks:
   red_pnp:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/red_pnp"  
     episode_len: 250
+
+##### FEB 4 - Force-torque tests #####
+  plug_insert:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_insert"  
+    episode_len: 600
+  
+  usb_plug:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/usb_plug"  
+    episode_len: 600
+  
+  ### MAJOR REVIEW SUPPLEMENTARY ###
+  green_ball_ssil:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/green_ball_ssil"  
+    episode_len: 600
+  
+  ### MAJOR REVIEW SUPPLEMENTARY ###  
+  puzzle_ssil:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/puzzle_ssil"  
+    episode_len: 600

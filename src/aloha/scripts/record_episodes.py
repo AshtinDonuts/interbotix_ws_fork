@@ -35,6 +35,7 @@ import numpy as np
 import os
 from pathlib import Path
 import rclpy
+import subprocess
 import time
 from typing import Dict, List
 from tqdm import tqdm
@@ -143,6 +144,20 @@ def opening_ceremony(robots: Dict[str, InterbotixManipulatorXS], gravity_compens
     print("Started!")
 
 
+def set_realsense_exposure(camera_name, exposure=20000):
+    node_name = f"/{camera_name}/camera"
+    try:
+        # Disable auto exposure
+        subprocess.run(['ros2', 'param', 'set', node_name, 'depth_module.enable_auto_exposure', 'false'], 
+                      check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Set exposure
+        subprocess.run(['ros2', 'param', 'set', node_name, 'depth_module.exposure', str(exposure)], 
+                      check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        print(f"Set exposure for {camera_name} to {exposure}")
+    except Exception as e:
+        print(f"Failed to set exposure for {camera_name}: {e}")
+
+
 def capture_one_episode(
     max_timesteps: int,
     dataset_dir: str,
@@ -152,6 +167,7 @@ def capture_one_episode(
     gravity_compensation: bool = False,
     config: Dict = None,
     get_gravity_torque: bool = False,
+    exposure: int = None,
 ) -> bool:
     """
     Capture one episode of robot teleoperation data and save it to a dataset file.
@@ -163,6 +179,8 @@ def capture_one_episode(
     :param torque_base: Flag to enable base torque during recording.
     :param gravity_compensation: Enable gravity compensation on leader robots.
     :param config: Configuration dictionary containing robot and camera settings.
+    :param get_gravity_torque: Flag to enable storing gravity torque information.
+    :param exposure: Optional camera exposure value in microseconds. If provided, sets exposure for all cameras.
     :return: True if data collection is successful; False if data quality is low.
     """
     # Determine if the robot has a mobile base and set the control frequency
@@ -180,6 +198,12 @@ def capture_one_episode(
         bool_gravity_torque = get_gravity_torque,  # DEBUG
     )
     robot_startup(node)
+
+    # Set exposure if provided
+    if exposure is not None:
+        camera_names = [camera["name"] for camera in config.get("cameras", {}).get("camera_instances", [])]
+        for cam_name in camera_names:
+            set_realsense_exposure(cam_name, exposure)
 
     # Set up the dataset file path and handle overwrites
     if not os.path.isdir(dataset_dir):
@@ -543,6 +567,9 @@ def main(args: Dict[str, any]) -> None:
     dataset_name = f"episode_{episode_idx}"
     print(f"{dataset_name}\n")
 
+    # Get exposure value from args (None if not provided)
+    exposure = args.get("exposure", None)
+
     # Start capturing an episode in a loop until it completes successfully
     while True:
         is_healthy = capture_one_episode(
@@ -554,6 +581,7 @@ def main(args: Dict[str, any]) -> None:
             gravity_compensation=gravity_compensation,
             config=config,
             get_gravity_torque = get_gravity_torque,
+            exposure=exposure,
         )
         if is_healthy:
             break
@@ -620,6 +648,16 @@ if __name__ == "__main__":
         "--gravity_torque",
         action="store_true",
         help="Enable storing Follower Gravity Torque information",
+    )
+
+    # Camera exposure argument: optional, only sets exposure if provided
+    parser.add_argument(
+        "--exposure",
+        action="store",
+        type=int,
+        help="Camera exposure value in microseconds. If provided, sets exposure for all cameras.",
+        default=None,
+        required=False,
     )
 
     # Execute the main function with parsed arguments
