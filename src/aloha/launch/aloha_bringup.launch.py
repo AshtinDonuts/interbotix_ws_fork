@@ -232,6 +232,32 @@ def launch_setup(context, *args, **kwargs):
 
         nodes.append(gravity_torque_node)
 
+        # Add Dynamics Proxy Node (includes friction, dither, no_load_current)
+        dynamics_proxy_node = Node(
+            package="dynamics_proxy",
+            executable="dynamics_proxy_node",
+            name="dynamics_proxy",
+            namespace=follower["name"],
+            parameters=[
+                {
+                    "motor_specs": PathJoinSubstitution([
+                        FindPackageShare("aloha"),
+                        "config",
+                        f"leader_motor_specs_{follower['orientation']}.yaml",
+                    ]),
+                    "arm_group_name": "arm",
+                    "gripper_joint_name": "gripper",
+                }
+            ],
+            output="screen",
+            condition=AndCondition([
+                IfCondition(LaunchConfiguration("get_dynamics_torque")),
+                IfCondition(LaunchConfiguration("launch_followers"))
+            ]),
+        )
+
+        nodes.append(dynamics_proxy_node)
+
 
 
     arms_group_action = GroupAction(
@@ -364,6 +390,10 @@ def launch_setup(context, *args, **kwargs):
             "\n\nAdditional Configurations:",
             "\n- Use gravity compensation: ", LaunchConfiguration(
                 "use_gravity_compensation"),
+            "\n- Get gravity torque: ", LaunchConfiguration(
+                "get_gravity_torque"),
+            "\n- Get dynamics torque: ", LaunchConfiguration(
+                "get_dynamics_torque"),
             "\n- Use RViz for visualization: ", LaunchConfiguration(
                 "use_aloha_rviz"),
             "\n- RViz configuration file: ", LaunchConfiguration(
@@ -460,6 +490,14 @@ def generate_launch_description():
             default_value="true",
             choices=("true", "false"),
             description="if `true`, launches the gravity torque computation node",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "get_dynamics_torque",
+            default_value="false",
+            choices=("true", "false"),
+            description="if `true`, launches the dynamics proxy node (includes friction, dither, no_load_current)",
         )
     )
 

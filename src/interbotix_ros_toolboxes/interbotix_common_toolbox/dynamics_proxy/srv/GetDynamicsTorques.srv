@@ -1,0 +1,7 @@
+# Get dynamics torques for the current joint configuration
+# Returns the computed torques in Nm without applying them to the robot
+
+---
+float64[] torques  # Dynamics torques for each arm joint [Nm]
+bool success       # True if torques were computed successfully
+string message     # Status message

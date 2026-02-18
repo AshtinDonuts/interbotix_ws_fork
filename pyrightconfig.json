@@ -1,0 +1,24 @@
+{
+  "include": [
+    "src",
+    "install"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/node_modules",
+    "**/.git"
+  ],
+  "extraPaths": [
+    "install/interbotix_xs_msgs/local/lib/python3.10/dist-packages",
+    "install/interbotix_xs_modules/lib/python3.10/site-packages",
+    "install/interbotix_common_modules/lib/python3.10/site-packages",
+    "install/interbotix_perception_modules/lib/python3.10/site-packages",
+    "install/interbotix_perception_msgs/local/lib/python3.10/dist-packages",
+    "install/interbotix_moveit_interface_msgs/local/lib/python3.10/dist-packages",
+    "install/interbotix_gravity_compensation/local/lib/python3.10/dist-packages",
+    "install/gravity_torque/local/lib/python3.10/dist-packages",
+    "install/aloha/lib/python3.10/site-packages"
+  ],
+  "pythonVersion": "3.10",
+  "typeCheckingMode": "basic"
+}

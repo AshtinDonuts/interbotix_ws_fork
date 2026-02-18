@@ -43,6 +43,7 @@ class RealEnv:
         torque_base: bool = False,
         config: dict = None,
         bool_gravity_torque: bool = False,
+        bool_dynamics_torque: bool = False,
     ):
         """
         Initialize the Real Robot Environment.
@@ -60,6 +61,8 @@ class RealEnv:
 
         # get gravity_torque
         self.bool_gravity_torque : bool = bool_gravity_torque
+        # get dynamics_torque (includes friction, dither, no_load_current)
+        self.bool_dynamics_torque : bool = bool_dynamics_torque
 
         self.dt = 1 / config.get('fps', 30)
 
@@ -90,6 +93,7 @@ class RealEnv:
                 robot_name=follower['name'],
                 node=node,
                 iterative_update_fk=False,
+                require_dynamics_torques=bool_dynamics_torque,
             )
 
         # Raise an error if no robots were added to the dictionary
@@ -222,12 +226,66 @@ class RealEnv:
                 arm_gravity_torque = bot.arm.get_gravity_torques()  # Should be an array/list of torques
                 # Pad with 0 for gripper to match the format of other observations (7 values per follower)
                 gripper_gravity_torque = [0.0]  # Gripper doesn't have meaningful gravity torque
-                
+
                 gravity_torque_list.append(arm_gravity_torque)
                 gravity_torque_list.append(gripper_gravity_torque)
 
         # Concatenate all gravity torques into a single array
         return np.concatenate(gravity_torque_list)
+    
+    def get_dynamics_torque(self):
+        """
+        Gather and concatenate all dynamics-related torques and parameters for all follower robots' arms and grippers.
+
+        Returns:
+            dict: Dictionary with keys for each dynamics term, each containing concatenated arrays:
+                - 'torques': gravity compensation torques [Nm]
+                - 'kinetic_friction_torques': kinetic friction torque contributions [Nm]
+                - 'static_friction_torques': static friction torque contributions [Nm]
+                - 'dither_speeds': dither speed thresholds [rad/s]
+                - 'no_load_currents': no-load current values [A]
+            Format: [arm_joints (6), gripper (0), ...] per follower robot.
+            Note: Gripper values are set to 0 as grippers don't have meaningful dynamics terms.
+        """
+        # Initialize dictionaries to hold all dynamics terms
+        dynamics_dict = {
+            'torques': [],
+            'kinetic_friction_torques': [],
+            'static_friction_torques': [],
+            'dither_speeds': [],
+            'no_load_currents': [],
+        }
+
+        # Iterate through all follower robots in the self.robots dictionary
+        for name, bot in self.robots.items():
+            if "follower" in name:
+                # Get all dynamics terms for the arm
+                arm_dynamics = bot.arm.get_dynamics_torques()
+                
+                # Pad with 0 for gripper to match the format of other observations (7 values per follower)
+                gripper_padding = [0.0]
+                
+                # Append arm and gripper values for each term
+                dynamics_dict['torques'].append(arm_dynamics['torques'])
+                dynamics_dict['torques'].append(gripper_padding)
+                
+                dynamics_dict['kinetic_friction_torques'].append(arm_dynamics['kinetic_friction_torques'])
+                dynamics_dict['kinetic_friction_torques'].append(gripper_padding)
+                
+                dynamics_dict['static_friction_torques'].append(arm_dynamics['static_friction_torques'])
+                dynamics_dict['static_friction_torques'].append(gripper_padding)
+                
+                dynamics_dict['dither_speeds'].append(arm_dynamics['dither_speeds'])
+                dynamics_dict['dither_speeds'].append(gripper_padding)
+                
+                dynamics_dict['no_load_currents'].append(arm_dynamics['no_load_currents'])
+                dynamics_dict['no_load_currents'].append(gripper_padding)
+
+        # Concatenate all dynamics terms into arrays
+        return {
+            key: np.concatenate(value_list) 
+            for key, value_list in dynamics_dict.items()
+        }
 
 
 
@@ -258,8 +316,6 @@ class RealEnv:
         # Update the gripper command with the unnormalized position
         self.gripper_command.cmd = desired_gripper_joint
 
-
-
         # Publish the command to the corresponding robot's gripper
         self.robots[robot_name].gripper.core.pub_single.publish(
             self.gripper_command)
@@ -278,10 +334,8 @@ class RealEnv:
     def _reset_gripper(self):
         """
         Set to position mode and do position resets.
-
         First open then close, then change back to PWM mode
         """
-
         # Open the grippers for all follower robots
         move_grippers(
             self.follower_bots,
@@ -310,6 +364,8 @@ class RealEnv:
         obs['images'] = self.get_images()
         if self.bool_gravity_torque:
             obs['gravity_torque'] = self.get_gravity_torque()   ## DEBUG
+        if self.bool_dynamics_torque:
+            obs['dynamics_torque'] = self.get_dynamics_torque()
 
         return obs
 
@@ -395,7 +451,7 @@ def make_real_env(
     torque_base: bool = False,
     config: dict = None,
     bool_gravity_torque : bool = False,
-
+    bool_dynamics_torque : bool = False,
 ):
     if node is None:
         node = get_interbotix_global_node()
@@ -407,7 +463,8 @@ def make_real_env(
         setup_base=setup_base,
         torque_base=torque_base,
         config=config,
-        bool_gravity_torque=bool_gravity_torque
+        bool_gravity_torque=bool_gravity_torque,
+        bool_dynamics_torque=bool_dynamics_torque,
     )
     return env
 

@@ -167,6 +167,7 @@ def capture_one_episode(
     gravity_compensation: bool = False,
     config: Dict = None,
     get_gravity_torque: bool = False,
+    get_dynamics_torque: bool = False,
     exposure: int = None,
 ) -> bool:
     """
@@ -180,6 +181,7 @@ def capture_one_episode(
     :param gravity_compensation: Enable gravity compensation on leader robots.
     :param config: Configuration dictionary containing robot and camera settings.
     :param get_gravity_torque: Flag to enable storing gravity torque information.
+    :param get_dynamics_torque: Flag to enable storing dynamics torque information (includes friction, dither, no_load_current).
     :param exposure: Optional camera exposure value in microseconds. If provided, sets exposure for all cameras.
     :return: True if data collection is successful; False if data quality is low.
     """
@@ -195,7 +197,8 @@ def capture_one_episode(
         setup_base=IS_MOBILE,
         torque_base=torque_base,
         config=config,
-        bool_gravity_torque = get_gravity_torque,  # DEBUG
+        bool_gravity_torque=get_gravity_torque,
+        bool_dynamics_torque=get_dynamics_torque,
     )
     robot_startup(node)
 
@@ -272,8 +275,17 @@ def capture_one_episode(
         "/observations/qvel": [],
         "/observations/effort": [],
         "/action": [],
-        "/observations/gravity_torque":[],
     }
+    
+    if get_gravity_torque:
+        data_dict["/observations/gravity_torque"] = []
+    
+    if get_dynamics_torque:
+        data_dict["/observations/dynamics_torque/torques"] = []
+        data_dict["/observations/dynamics_torque/kinetic_friction_torques"] = []
+        data_dict["/observations/dynamics_torque/static_friction_torques"] = []
+        data_dict["/observations/dynamics_torque/dither_speeds"] = []
+        data_dict["/observations/dynamics_torque/no_load_currents"] = []
 
     # Collect camera names from config and initialize image storage in data_dict
     camera_names = [camera["name"] for camera in config.get(
@@ -291,10 +303,19 @@ def capture_one_episode(
         data_dict["/observations/qvel"].append(ts.observation["qvel"])
         data_dict["/observations/effort"].append(ts.observation["effort"])
         data_dict["/action"].append(action)
-        data_dict["/observations/gravity_torque"].append(ts.observation["gravity_torque"])
-
-        print('Viewing gravity torque values')
-        print(ts.observation["gravity_torque"])
+        
+        if get_gravity_torque:
+            data_dict["/observations/gravity_torque"].append(ts.observation["gravity_torque"])
+            print('Viewing gravity torque values')
+            print(ts.observation["gravity_torque"])
+        
+        if get_dynamics_torque:
+            dynamics = ts.observation["dynamics_torque"]
+            data_dict["/observations/dynamics_torque/torques"].append(dynamics["torques"])
+            data_dict["/observations/dynamics_torque/kinetic_friction_torques"].append(dynamics["kinetic_friction_torques"])
+            data_dict["/observations/dynamics_torque/static_friction_torques"].append(dynamics["static_friction_torques"])
+            data_dict["/observations/dynamics_torque/dither_speeds"].append(dynamics["dither_speeds"])
+            data_dict["/observations/dynamics_torque/no_load_currents"].append(dynamics["no_load_currents"])
         
         for cam_name in camera_names:
             image = ts.observation["images"][cam_name]
@@ -385,8 +406,18 @@ def capture_one_episode(
         _ = obs.create_dataset("qpos", (max_timesteps, total_size))
         _ = obs.create_dataset("qvel", (max_timesteps, total_size))
         _ = obs.create_dataset("effort", (max_timesteps, total_size))
-        _ = obs.create_dataset("gravity_torque", (max_timesteps, total_size))
         _ = root.create_dataset("action", (max_timesteps, total_size))
+        
+        if get_gravity_torque:
+            _ = obs.create_dataset("gravity_torque", (max_timesteps, total_size))
+        
+        if get_dynamics_torque:
+            dynamics_group = obs.create_group("dynamics_torque")
+            _ = dynamics_group.create_dataset("torques", (max_timesteps, total_size))
+            _ = dynamics_group.create_dataset("kinetic_friction_torques", (max_timesteps, total_size))
+            _ = dynamics_group.create_dataset("static_friction_torques", (max_timesteps, total_size))
+            _ = dynamics_group.create_dataset("dither_speeds", (max_timesteps, total_size))
+            _ = dynamics_group.create_dataset("no_load_currents", (max_timesteps, total_size))
 
         for name, array in data_dict.items():
             root[name][...] = array
@@ -462,7 +493,7 @@ def get_auto_index(dataset_dir: str, dataset_name_prefix: str = "", data_suffix:
         f"Error getting auto index, or more than {max_idx} episodes.")
 
 
-def print_dt_diagnosis(actual_dt_history: List[List[float]]) -> float:
+def print_dt_diagnosis(actual_dt_history):
     """
     Diagnoses and prints timing statistics for each step in the episode, such as the frequency of 
     action execution and environment steps.
@@ -526,17 +557,26 @@ def main(args: Dict[str, any]) -> None:
     gravity_compensation : bool = False          ## DEBUG
 
     # get_gravity_torque : bool = args.get('get_gravity_torque', True)
-    get_gravity_torque : bool = True             ## DEBUG
+    get_gravity_torque : bool = False             ## DEBUG
+    
+    # get_dynamics_torque : bool = args.get('dynamics_torque', False)
+    get_dynamics_torque : bool = args.get('dynamics_torque', False)
 
     assert not (bool(gravity_compensation) and bool(get_gravity_torque)), \
         "gravity compensation and gravity-torque modules are currently incompatible. At most one can be enabled."
+    
+    assert not (bool(gravity_compensation) and bool(get_dynamics_torque)), \
+        "gravity compensation and dynamics-torque modules are currently incompatible. At most one can be enabled."
+    
+    assert not (bool(get_gravity_torque) and bool(get_dynamics_torque)), \
+        "gravity-torque and dynamics-torque modules are currently incompatible. At most one can be enabled."
 
     base_path = Path(__file__).resolve().parent.parent / "config"
 
 
     # Load robot and task configurations from YAML files
-    config = load_yaml_file("robot", robot_base, base_path).get('robot', {})
-    task_config = load_yaml_file("task", base_path=base_path)
+    config = load_yaml_file("robot", robot_base, str(base_path)).get('robot', {})
+    task_config = load_yaml_file("task", base_path=str(base_path))
     task = task_config["tasks"].get(args.get("task_name"))   ## TODO: check if task_config exists
 
     # Determine dataset directory and maximum timesteps
@@ -574,7 +614,8 @@ def main(args: Dict[str, any]) -> None:
             torque_base=torque_base,
             gravity_compensation=gravity_compensation,
             config=config,
-            get_gravity_torque = get_gravity_torque,
+            get_gravity_torque=get_gravity_torque,
+            get_dynamics_torque=get_dynamics_torque,
             exposure=exposure,
         )
         if is_healthy:
@@ -642,6 +683,13 @@ if __name__ == "__main__":
         "--gravity_torque",
         action="store_true",
         help="Enable storing Follower Gravity Torque information",
+    )
+    
+    # Enable Dynamics Torque (includes friction, dither, no_load_current)
+    parser.add_argument(
+        "--dynamics_torque",
+        action="store_true",
+        help="Enable storing Follower Dynamics Torque information (includes kinetic friction, static friction, dither speeds, no_load_currents)",
     )
 
     # Camera exposure argument: optional, only sets exposure if provided
