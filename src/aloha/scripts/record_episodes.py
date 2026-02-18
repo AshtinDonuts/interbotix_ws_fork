@@ -281,7 +281,7 @@ def capture_one_episode(
         data_dict["/observations/gravity_torque"] = []
     
     if get_dynamics_torque:
-        data_dict["/observations/dynamics_torque/torques"] = []
+        data_dict["/observations/dynamics_torque/gravity_torques"] = []
         data_dict["/observations/dynamics_torque/kinetic_friction_torques"] = []
         data_dict["/observations/dynamics_torque/static_friction_torques"] = []
         data_dict["/observations/dynamics_torque/dither_speeds"] = []
@@ -311,7 +311,7 @@ def capture_one_episode(
         
         if get_dynamics_torque:
             dynamics = ts.observation["dynamics_torque"]
-            data_dict["/observations/dynamics_torque/torques"].append(dynamics["torques"])
+            data_dict["/observations/dynamics_torque/gravity_torques"].append(dynamics["gravity_torques"])
             data_dict["/observations/dynamics_torque/kinetic_friction_torques"].append(dynamics["kinetic_friction_torques"])
             data_dict["/observations/dynamics_torque/static_friction_torques"].append(dynamics["static_friction_torques"])
             data_dict["/observations/dynamics_torque/dither_speeds"].append(dynamics["dither_speeds"])
@@ -413,7 +413,7 @@ def capture_one_episode(
         
         if get_dynamics_torque:
             dynamics_group = obs.create_group("dynamics_torque")
-            _ = dynamics_group.create_dataset("torques", (max_timesteps, total_size))
+            _ = dynamics_group.create_dataset("gravity_torques", (max_timesteps, total_size))
             _ = dynamics_group.create_dataset("kinetic_friction_torques", (max_timesteps, total_size))
             _ = dynamics_group.create_dataset("static_friction_torques", (max_timesteps, total_size))
             _ = dynamics_group.create_dataset("dither_speeds", (max_timesteps, total_size))

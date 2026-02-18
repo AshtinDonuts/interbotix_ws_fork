@@ -155,7 +155,7 @@ void DynamicsProxy::joint_state_cb(
   dynamics_msg.group_name = arm_group_name_;
 
   // Extract torques for arm joints only (in Nm, before conversion to current)
-  dynamics_msg.torques.resize(num_joints_arm_);
+  dynamics_msg.gravity_torques.resize(num_joints_arm_);
   dynamics_msg.joint_positions.resize(num_joints_arm_);
   dynamics_msg.joint_velocities.resize(num_joints_arm_);
   dynamics_msg.kinetic_friction_torques.resize(num_joints_arm_);
@@ -172,7 +172,7 @@ void DynamicsProxy::joint_state_cb(
   // Get dynamics torques and compute friction contributions
   for (size_t i = 0; i < num_joints_arm_; i++) {
     double gravity_torque = static_cast<double>(torques(i));  // save as Nm
-    dynamics_msg.torques[i] = gravity_torque;
+    dynamics_msg.gravity_torques[i] = gravity_torque;
     
     // Compute kinetic friction torque contribution
     // Kinetic friction is proportional to the absolute value of the gravity torque

@@ -239,7 +239,7 @@ class RealEnv:
 
         Returns:
             dict: Dictionary with keys for each dynamics term, each containing concatenated arrays:
-                - 'torques': gravity compensation torques [Nm]
+                - 'gravity_torques': gravity compensation torques [Nm]
                 - 'kinetic_friction_torques': kinetic friction torque contributions [Nm]
                 - 'static_friction_torques': static friction torque contributions [Nm]
                 - 'dither_speeds': dither speed thresholds [rad/s]
@@ -249,7 +249,7 @@ class RealEnv:
         """
         # Initialize dictionaries to hold all dynamics terms
         dynamics_dict = {
-            'torques': [],
+            'gravity_torques': [],
             'kinetic_friction_torques': [],
             'static_friction_torques': [],
             'dither_speeds': [],
@@ -266,8 +266,8 @@ class RealEnv:
                 gripper_padding = [0.0]
                 
                 # Append arm and gripper values for each term
-                dynamics_dict['torques'].append(arm_dynamics['torques'])
-                dynamics_dict['torques'].append(gripper_padding)
+                dynamics_dict['gravity_torques'].append(arm_dynamics['gravity_torques'])
+                dynamics_dict['gravity_torques'].append(gripper_padding)
                 
                 dynamics_dict['kinetic_friction_torques'].append(arm_dynamics['kinetic_friction_torques'])
                 dynamics_dict['kinetic_friction_torques'].append(gripper_padding)
