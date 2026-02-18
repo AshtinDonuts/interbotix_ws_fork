@@ -53,7 +53,7 @@ robot:
         enable_auto_exposure: false
 
       # Depth module exposure (controls RGB camera exposure in RealSense)
-      depth_module.exposure: 10000          
+      depth_module.exposure: 20000
 
       # Depth module settings
       depth_module:
