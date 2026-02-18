@@ -26,6 +26,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <functional>
@@ -140,9 +141,38 @@ void DynamicsProxy::joint_state_cb(
   KDL::JntArray torques(tree_.getNrOfJoints());
 
   // Set the joint positions and velocities
-  for (size_t i = 0; i < latest_joint_state_->position.size(); i++) {
+  // Only process up to the minimum of joint_states size and KDL tree size to avoid out-of-bounds access
+  size_t num_joints_to_process = std::min(
+    static_cast<size_t>(latest_joint_state_->position.size()),
+    static_cast<size_t>(tree_.getNrOfJoints())
+  );
+  
+  // Check if we have enough joints
+  if (num_joints_to_process < tree_.getNrOfJoints()) {
+    RCLCPP_WARN_THROTTLE(
+      this->get_logger(),
+      *this->get_clock(),
+      5000,  // Log at most once every 5 seconds
+      "Joint state message has %zu joints but KDL tree expects %d. Some joints may be uninitialized.",
+      latest_joint_state_->position.size(),
+      tree_.getNrOfJoints()
+    );
+  }
+  
+  // Initialize all joints to zero first
+  for (size_t i = 0; i < static_cast<size_t>(tree_.getNrOfJoints()); i++) {
+    q(i) = 0.0;
+    q_dot(i) = 0.0;
+  }
+  
+  // Set the joint positions and velocities from the message
+  for (size_t i = 0; i < num_joints_to_process; i++) {
     q(i) = latest_joint_state_->position[i];
-    q_dot(i) = latest_joint_state_->velocity[i];
+    if (i < latest_joint_state_->velocity.size()) {
+      q_dot(i) = latest_joint_state_->velocity[i];
+    } else {
+      q_dot(i) = 0.0;
+    }
   }
 
   // Compute the torques
