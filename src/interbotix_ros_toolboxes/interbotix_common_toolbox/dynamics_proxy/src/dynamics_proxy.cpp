@@ -68,6 +68,9 @@ DynamicsProxy::DynamicsProxy(
   // Main publisher that publishes Dynamics Torque readings
   dynamics_torques_pub_ = this->create_publisher<dynamics_proxy::msg::DynamicsTorques>("dynamics_torques", 10);
 
+  // Publisher for motor specs (torque constants and current units)
+  motor_specs_pub_ = this->create_publisher<dynamics_proxy::msg::MotorSpecs>("motor_specs", 10);
+
   // Create the client for the 'RobotInfo' service
   robot_info_client_ = this->create_client<interbotix_xs_msgs::srv::RobotInfo>(
     "get_robot_info", rmw_qos_profile_services_default, reentrant_callback_group);
@@ -191,6 +194,9 @@ void DynamicsProxy::joint_state_cb(
   // Publish the Dynamics Torques message
   // no race condition
   dynamics_torques_pub_->publish(dynamics_msg);
+
+  // Publish motor specs continuously
+  publish_motor_specs();
 
 }
 
@@ -371,4 +377,28 @@ bool DynamicsProxy::prepare_tree()
   q_ddot_.resize(tree_.getNrOfJoints());
 
   return true;
+}
+
+void DynamicsProxy::publish_motor_specs()
+{
+  // Create a MotorSpecs message
+  dynamics_proxy::msg::MotorSpecs motor_specs_msg;
+  motor_specs_msg.header.stamp = this->now();
+  motor_specs_msg.header.frame_id = "base_link";
+  motor_specs_msg.group_name = arm_group_name_;
+
+  // Resize arrays to match number of arm joints
+  motor_specs_msg.joint_names.resize(num_joints_arm_);
+  motor_specs_msg.torque_constants.resize(num_joints_arm_);
+  motor_specs_msg.current_units.resize(num_joints_arm_);
+
+  // Fill in the motor specs for arm joints only
+  for (size_t i = 0; i < num_joints_arm_; i++) {
+    motor_specs_msg.joint_names[i] = joint_names_[i];
+    motor_specs_msg.torque_constants[i] = torque_constants_[i];
+    motor_specs_msg.current_units[i] = current_units_[i];
+  }
+
+  // Publish the motor specs message
+  motor_specs_pub_->publish(motor_specs_msg);
 }

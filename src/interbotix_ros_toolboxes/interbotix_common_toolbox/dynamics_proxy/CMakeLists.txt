@@ -24,6 +24,7 @@ find_package(yaml_cpp_vendor REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetDynamicsTorques.srv"
   "msg/DynamicsTorques.msg"
+  "msg/MotorSpecs.msg"
   DEPENDENCIES sensor_msgs std_msgs
 )
 

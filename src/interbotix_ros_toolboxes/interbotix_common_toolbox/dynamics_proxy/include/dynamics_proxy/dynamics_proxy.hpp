@@ -35,6 +35,7 @@
 #include <vector>
 
 #include "dynamics_proxy/msg/dynamics_torques.hpp"
+#include "dynamics_proxy/msg/motor_specs.hpp"
 #include "dynamics_proxy/srv/get_dynamics_torques.hpp"
 #include "interbotix_xs_msgs/msg/joint_group_command.hpp"
 #include "interbotix_xs_msgs/srv/operating_modes.hpp"
@@ -70,6 +71,9 @@ private:
 
   // Publisher for dynamics torques message
   rclcpp::Publisher<dynamics_proxy::msg::DynamicsTorques>::SharedPtr dynamics_torques_pub_;
+
+  // Publisher for motor specs message
+  rclcpp::Publisher<dynamics_proxy::msg::MotorSpecs>::SharedPtr motor_specs_pub_;
 
   // Client to get the robot info
   rclcpp::Client<interbotix_xs_msgs::srv::RobotInfo>::SharedPtr robot_info_client_;
@@ -174,6 +178,13 @@ private:
    * @return true if the KDL tree was prepared successfully; false otherwise
    */
   bool prepare_tree();
+
+  /**
+   * @brief Publish motor specs (torque constants and current units)
+   * @details This function publishes the loaded motor specifications including torque constants
+   *   and current units for each joint
+   */
+  void publish_motor_specs();
 };
 
 #endif  // dynamics_proxy__dynamics_proxy_HPP_
