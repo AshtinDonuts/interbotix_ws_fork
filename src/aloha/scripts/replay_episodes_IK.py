@@ -1,28 +1,23 @@
 #!/usr/bin/env python3
 """
-Replay saved robot episodes using direct joint position control.
+Replay saved robot episodes using end-effector pose control (IK).
 
 This script loads recorded actions from an HDF5 dataset and replays them on the robot
-using direct joint position control. The robot is automatically positioned to the
-initial state from the recorded trajectory before replay begins.
+using inverse kinematics to control end-effector poses. The robot is automatically
+positioned to the initial state from the recorded trajectory before replay begins.
 
 Example usage:
-    # Replay episode 0 from a dataset directory for a stationary robot:
-    python replay_episodes.py --dataset_dir /path/to/dataset --episode_idx 0 -r aloha_stationary
-
-    # Replay episode 5 for a mobile robot:
-    python replay_episodes.py --dataset_dir /path/to/dataset --episode_idx 5 -r aloha_mobile
-
     # Replay episode 0 (default) for a solo robot:
-    python replay_episodes.py --dataset_dir /mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/puzzle_ssil/ -r aloha_solo --episode_idx 1
+    python3 replay_episodes.py --robot aloha_solo --dataset_dir /mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/puzzle_ssil/ --episode_idx 1
+
 """
 
 import argparse
 import os
 import time
 from typing import Dict
-
 import h5py
+import numpy as np
 from aloha.real_env import make_real_env
 from aloha.robot_utils import (
     move_grippers,
@@ -37,6 +32,9 @@ from interbotix_common_modules.common_robot.robot import (
     robot_shutdown,
     robot_startup,
 )
+from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
+from interbotix_xs_msgs.msg import JointSingleCommand
+import modern_robotics as mr
 from pathlib import Path
 
 
@@ -44,10 +42,24 @@ from pathlib import Path
 STATE_NAMES = JOINT_NAMES + ['gripper', 'left_finger', 'right_finger']
 
 
+def compute_ee_pose_from_joints(robot: InterbotixManipulatorXS, joint_positions: np.ndarray) -> np.ndarray:
+    """
+    Compute end-effector pose from joint positions using forward kinematics.
+
+    :param robot: The robot manipulator instance.
+    :param joint_positions: Array of joint positions in radians.
+    :return: 4x4 transformation matrix representing the end-effector pose.
+    """
+    # Convert to list format expected by FKinSpace
+    joint_list = joint_positions.tolist() if isinstance(joint_positions, np.ndarray) else joint_positions
+    return mr.FKinSpace(robot.arm.robot_des.M, robot.arm.robot_des.Slist, joint_list)
+
+
 def main(args: Dict[str, any]) -> None:
     """
-    Main function to replay a saved episode for the robot based on configuration parameters.
-    Loads actions from an HDF5 file and applies them in a real environment.
+    Main function to replay a saved episode for the robot based on end-effector poses.
+    Loads actions (joint positions) from an HDF5 file, converts them to end-effector poses,
+    and applies them using end-effector pose control.
 
     :param args: Dictionary of command-line arguments, including:
         - 'dataset_dir' (str): Path to the directory containing episode datasets.
@@ -88,7 +100,7 @@ def main(args: Dict[str, any]) -> None:
         exit()
     
     initial_action = actions[0]
-    
+
     # Initialize the ROS node and create the real environment
     node = create_interbotix_global_node('aloha')
     env = make_real_env(node, setup_robots=False,
@@ -100,30 +112,34 @@ def main(args: Dict[str, any]) -> None:
     robot_startup(node)
 
     # Configure and initialize follower robots
-    follower_bots = []
-    follower_names = []
+    follower_robots = {}
+    follower_bots_list = []  # List version for move_arms
     for name, bot in env.robots.items():
         if 'follower' in name:
             bot.core.robot_reboot_motors('single', 'gripper', True)
+            # Use position mode for end-effector pose control
             bot.core.robot_set_operating_modes('group', 'arm', 'position')
             bot.core.robot_set_operating_modes(
                 'single', 'gripper', 'current_based_position')
             bot.core.robot_torque_enable('group', 'arm', True)
             bot.core.robot_torque_enable('single', 'gripper', True)
-            follower_bots.append(bot)
-            follower_names.append(name)
+            follower_robots[name] = bot
+            follower_bots_list.append(bot)
 
     # Reset the environment (fake=True skips joint/gripper movement)
     # We'll move to the initial positions from the dataset instead
     env.reset(fake=True)
     
-    # Extract initial joint and gripper positions from the first action
-    num_followers = len(follower_bots)
+    # Get follower robot names and calculate state length per robot
+    follower_names = list(follower_robots.keys())
+    num_followers = len(follower_names)
     if num_followers == 0:
         print('Error: No follower robots found')
         exit()
     
     state_len = int(len(initial_action) / num_followers)
+    
+    # Extract initial joint and gripper positions from the first action
     initial_joint_positions = []
     initial_gripper_positions = []
     
@@ -139,7 +155,7 @@ def main(args: Dict[str, any]) -> None:
     # Move robots to initial positions from the dataset (safely, with smooth trajectory)
     print('Moving robots to initial position from dataset...')
     move_arms(
-        bot_list=follower_bots,
+        bot_list=follower_bots_list,
         target_pose_list=initial_joint_positions,
         dt=dt,
         moving_time=3.0,  # Smooth 3-second movement to initial position
@@ -147,7 +163,7 @@ def main(args: Dict[str, any]) -> None:
     
     # Set initial gripper positions
     move_grippers(
-        follower_bots,
+        follower_bots_list,
         initial_gripper_positions,
         moving_time=1.0,
         dt=dt,
@@ -156,33 +172,102 @@ def main(args: Dict[str, any]) -> None:
     print('Robots positioned at initial trajectory state. Starting replay...')
     time0 = time.time()
 
-    # Execute each action in the episode
+    # Create gripper command message
+    gripper_command = JointSingleCommand(name='gripper')
+
+    # Execute each action in the episode using end-effector pose control
     if is_mobile:
         for action, base_action in zip(actions, base_actions):
             time1 = time.time()
-            env.step(action, base_action)
+            
+            # Process each follower robot
+            index = 0
+            for name in follower_names:
+                bot = follower_robots[name]
+                bot_action = action[index:index + state_len]
+                
+                # Extract arm joint positions and gripper position
+                arm_joint_positions = bot_action[:-1]
+                gripper_normalized = bot_action[-1]
+                
+                # Convert joint positions to end-effector pose
+                ee_pose = compute_ee_pose_from_joints(bot, arm_joint_positions)
+                
+                # Set end-effector pose using IK
+                _, success = bot.arm.set_ee_pose_matrix(
+                    T_sd=ee_pose,
+                    custom_guess=bot.arm.get_joint_commands(),
+                    execute=True,
+                    moving_time=dt,
+                    accel_time=dt * 0.5,
+                    blocking=False
+                )
+                
+                # Set gripper position
+                gripper_joint = FOLLOWER_GRIPPER_JOINT_UNNORMALIZE_FN(gripper_normalized)
+                gripper_command.cmd = gripper_joint
+                bot.gripper.core.pub_single.publish(gripper_command)
+                
+                index += state_len
+            
+            # Handle base action if mobile
+            if base_action is not None:
+                base_action_linear, base_action_angular = base_action
+                env.base.base.command_velocity_xyaw(
+                    x=base_action_linear, yaw=base_action_angular)
+            
             time.sleep(max(0, dt - (time.time() - time1)))
     else:
         for action in actions:
             time1 = time.time()
-            env.step(action, None)
+            
+            # Process each follower robot
+            index = 0
+            for name in follower_names:
+                bot = follower_robots[name]
+                bot_action = action[index:index + state_len]
+                
+                # Extract arm joint positions and gripper position
+                arm_joint_positions = bot_action[:-1]
+                gripper_normalized = bot_action[-1]
+                
+                # Convert joint positions to end-effector pose
+                ee_pose = compute_ee_pose_from_joints(bot, arm_joint_positions)
+                
+                # Set end-effector pose using IK
+                _, success = bot.arm.set_ee_pose_matrix(
+                    T_sd=ee_pose,
+                    custom_guess=bot.arm.get_joint_commands(),
+                    execute=True,
+                    moving_time=dt,
+                    accel_time=dt * 0.5,
+                    blocking=False
+                )
+                
+                # Set gripper position
+                gripper_joint = FOLLOWER_GRIPPER_JOINT_UNNORMALIZE_FN(gripper_normalized)
+                gripper_command.cmd = gripper_joint
+                bot.gripper.core.pub_single.publish(gripper_command)
+                
+                index += state_len
+            
             time.sleep(max(0, dt - (time.time() - time1)))
 
     # Print average frames per second
     print(f'Avg fps: {len(actions) / (time.time() - time0)}')
 
     # Move follower grippers to open position after replay
-    gripper_positions = [FOLLOWER_GRIPPER_JOINT_OPEN] * len(follower_bots)
+    gripper_positions = [FOLLOWER_GRIPPER_JOINT_OPEN] * len(follower_bots_list)
 
     # Move follower grippers to open position
-    move_grippers(follower_bots, gripper_positions, moving_time=0.5, dt=dt)
+    move_grippers(follower_bots_list, gripper_positions, moving_time=0.5, dt=dt)
     robot_shutdown(node)
 
 
 if __name__ == '__main__':
     # Define command-line arguments
     parser = argparse.ArgumentParser(
-        description="Replays a saved episode for the robot using direct joint position control.",
+        description="Replays a saved episode for the robot using end-effector pose control.",
         epilog="""
 Examples:
   %(prog)s --dataset_dir /path/to/dataset --episode_idx 0 -r aloha_stationary

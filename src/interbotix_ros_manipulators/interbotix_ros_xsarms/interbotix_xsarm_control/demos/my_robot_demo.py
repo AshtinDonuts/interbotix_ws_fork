@@ -48,12 +48,8 @@ Then change to this directory and type:
 
 
 def main():
-    bot = InterbotixManipulatorXS(
-        robot_model='aloha_vx300s',
-        group_name='arm',
-        gripper_name='gripper',
-        require_gravity_torques=False,
-    )
+    
+    bot = InterbotixManipulatorXS( robot_model='aloha_vx300s', group_name='arm', gripper_name='gripper', require_gravity_torques=False)
 
     robot_startup()
 
@@ -62,12 +58,14 @@ def main():
         bot.shutdown()
         sys.exit()
 
-    bot.arm.go_to_home_pose()
-    bot.arm.set_ee_cartesian_trajectory(z=-0.2)
-    bot.arm.set_ee_cartesian_trajectory(x=-0.2)
-    bot.arm.set_ee_cartesian_trajectory(z=0.2)
-    bot.arm.set_ee_cartesian_trajectory(x=0.2)
-    bot.arm.go_to_sleep_pose()
+    # bot.arm.go_to_home_pose()
+    # bot.arm.set_ee_cartesian_trajectory(z=-0.2)
+    # bot.arm.set_ee_cartesian_trajectory(x=-0.2)
+    # bot.arm.set_ee_cartesian_trajectory(z=0.2)
+    # bot.arm.set_ee_cartesian_trajectory(x=0.2)
+    # bot.arm.go_to_sleep_pose()
+
+    bot.arm.go_to
 
     robot_shutdown()
 

@@ -222,7 +222,7 @@ class RealEnv:
                 arm_gravity_torque = bot.arm.get_gravity_torques()  # Should be an array/list of torques
                 # Pad with 0 for gripper to match the format of other observations (7 values per follower)
                 gripper_gravity_torque = [0.0]  # Gripper doesn't have meaningful gravity torque
-                # Append arm gravity torques and gripper (0) to the list
+                
                 gravity_torque_list.append(arm_gravity_torque)
                 gravity_torque_list.append(gripper_gravity_torque)
 

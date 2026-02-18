@@ -30,6 +30,8 @@
 
 import sys
 
+from rclpy import node
+
 from interbotix_common_modules.common_robot.robot import robot_shutdown, robot_startup
 from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
 
@@ -69,7 +71,7 @@ def main():
     bot.arm.set_ee_cartesian_trajectory(x=0.2)
     bot.arm.go_to_sleep_pose()
 
-    robot_shutdown()
+    robot_shutdown(node)
 
 
 if __name__ == '__main__':

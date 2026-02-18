@@ -296,29 +296,23 @@ def capture_one_episode(
         print('Viewing gravity torque values')
         print(ts.observation["gravity_torque"])
         
-        ## TODO : 
-        #  Use realsense SDK to access 640 x 480 option (instead of cv2)
         for cam_name in camera_names:
             image = ts.observation["images"][cam_name]
             # Resize image to enforce 640x480 resolution
             if image is not None:
-                # Center crop image to 640x480 (width x height)
+
                 h, w = image.shape[:2]
                 new_w, new_h = 640, 480
 
-                # Compute cropping coordinates
                 left = max((w - new_w) // 2, 0)
                 top = max((h - new_h) // 2, 0)
                 right = left + new_w
                 bottom = top + new_h
 
-                # Crop the image
                 cropped = image[top:bottom, left:right]
                 image = cropped
             else:
-                # Create placeholder image (zeros) when image is None
-                # Default shape: (height, width, channels) = (480, 640, 3)
-                image = np.zeros((480, 640, 3), dtype=np.uint8)
+                raise RuntimeError(f"Missing image frame for camera '{cam_name}' at timestep. Cannot save dataset with missing frames.")
             data_dict[f"/observations/images/{cam_name}"].append(image)
 
     # Optionally compress images and add padding for equal length

@@ -28,31 +28,27 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-from interbotix_common_modules.common_robot.robot import robot_shutdown, robot_startup
+from interbotix_common_modules.common_robot.robot import (
+    create_interbotix_global_node,
+    robot_shutdown,
+    robot_startup,
+)
 from interbotix_xs_modules.xs_robot.arm import InterbotixManipulatorXS
-import numpy as np
 
 """
-This script makes the end-effector go to a specific pose only possible with a 6dof arm using a
-transformation matrix
+This script commands some arbitrary positions to the arm joints:
 
 To get started, open a terminal and type:
 
-    ros2 launch interbotix_xsarm_control xsarm_control.launch.py robot_model:=wx250s
+    ros2 launch interbotix_xsarm_control xsarm_control.launch.py robot_model:=aloha_vx300s
 
 Then change to this directory and type:
 
-    python3 ee_pose_matrix_control.py
+    python3 joint_position_control.py
 """
 
 
 def main():
-    T_sd = np.array([
-        [1.0, 0.0, 0.0, 0.3],
-        [0.0, 1.0, 0.0, 0.0],
-        [0.0, 0.0, 1.0, 0.2],
-        [0.0, 0.0, 0.0, 1.0]
-    ])
 
     bot = InterbotixManipulatorXS(
         robot_model='aloha_vx300s',
@@ -60,10 +56,21 @@ def main():
         gripper_name='gripper',
         require_gravity_torques=False,
     )
-
     robot_startup()
 
-    bot.arm.set_ee_pose_matrix(T_sd)
+    # Print joint limits for debugging
+    print("\n=== Joint Limits ===")
+    print(f"Joint names: {bot.arm.group_info.joint_names}")
+    print(f"Lower limits: {bot.arm.group_info.joint_lower_limits}")
+    print(f"Upper limits: {bot.arm.group_info.joint_upper_limits}")
+    print(f"Velocity limits: {bot.arm.group_info.joint_velocity_limits}")
+    print(f"Sleep positions: {bot.arm.group_info.joint_sleep_positions}")
+    print(f"Current positions: {bot.arm.joint_commands}")
+    print(f"Moving time: {bot.arm.moving_time} seconds")
+    print("=" * 50 + "\n")
+
+
+    bot.arm.get_joint_positions()
     bot.arm.go_to_sleep_pose()
 
     robot_shutdown()

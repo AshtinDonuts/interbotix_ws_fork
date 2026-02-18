@@ -49,25 +49,20 @@ Then change to this directory and type:
 
 
 def main():
-    joint_positions = [0, 0, 0, 0, 0, 0]
-
-    # Create the node first, then start the robot, then create the bot
-    node = create_interbotix_global_node()
-    
-    robot_startup(node)
 
     bot = InterbotixManipulatorXS(
         robot_model='aloha_vx300s',
         group_name='arm',
         gripper_name='gripper',
-        node=node,
+        require_gravity_torques=False,
     )
+    robot_startup()
+    
 
-    bot.arm.go_to_home_pose()
-    # bot.arm.set_joint_positions(joint_positions)
-    # bot.arm.go_to_home_pose()
+    joint_positions = [-0.13, -0.67, 0.9, 0.06, 1.07, -0.27]
+    bot.arm.set_joint_positions(joint_positions, moving_time=5.0)
 
-    robot_shutdown(node)
+    robot_shutdown()
 
 
 if __name__ == '__main__':

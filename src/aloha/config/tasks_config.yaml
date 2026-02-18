@@ -100,4 +100,10 @@ tasks:
   ### MAJOR REVIEW SUPPLEMENTARY ###  
   puzzle_ssil:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/puzzle_ssil"  
-    episode_len: 600
+    episode_len: 450
+
+  ### MAJOR REVIEW ACT SUPPLEMENTARY ###  
+  lego_insert_h:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert_h"  
+    episode_len: 400
+    

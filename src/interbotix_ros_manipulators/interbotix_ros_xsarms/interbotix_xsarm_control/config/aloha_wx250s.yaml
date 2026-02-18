@@ -70,7 +70,7 @@ motors:
   elbow_shadow:
     ID: 5
     Baud_Rate: 3
-    Return_Delay_Time: 0
+    Return_Delay_Time: 0 
     Drive_Mode: 1
     Velocity_Limit: 131
     Min_Position_Limit: 648

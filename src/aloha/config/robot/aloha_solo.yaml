@@ -50,7 +50,10 @@ robot:
         profile: '640,480,60'                
 
         # Disable auto exposure for consistent lighting (default: false)
-        enable_auto_exposure: false          
+        enable_auto_exposure: false
+
+      # Depth module exposure (controls RGB camera exposure in RealSense)
+      depth_module.exposure: 10000          
 
       # Depth module settings
       depth_module:
