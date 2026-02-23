@@ -21,5 +21,5 @@ python3 record_episodes.py \
 ```
 
 ```
-bash auto_record.sh plug_insert 30 aloha_solo --dynamics_torque
+bash auto_record.sh plug_insert 20 aloha_solo --dynamics_torque
 ```

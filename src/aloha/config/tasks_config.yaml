@@ -99,3 +99,24 @@ tasks:
   plug_analysis:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_analysis"  
     episode_len: 500
+
+#### IROS ######
+  lego_insert :
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert"  
+    episode_len: 600
+
+  soap_push :
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/soap_push"  
+    episode_len: 600
+
+  board_wipe :
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/board_wipe"  
+    episode_len: 600
+
+  surface_follow :
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/surface_follow"  
+    episode_len: 600
+
+  usb_plug :
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/usb_plug"  
+    episode_len: 600
