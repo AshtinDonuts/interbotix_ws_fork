@@ -9,6 +9,8 @@ import logging
 
 from std_msgs.msg import Bool
 from aloha.robot_utils import (
+    FOLLOWER_GRIPPER_JOINT_MID,
+    FOLLOWER_GRIPPER_JOINT_GRAB,
     enable_gravity_compensation,
     get_arm_gripper_positions,
     move_arms,
@@ -112,7 +114,13 @@ def opening_ceremony(robots: Dict[str, InterbotixManipulatorXS],
             moving_time=4.0,
         )
 
-
+        # Default
+        # move_grippers(
+        #     [leader_bot, follower_bot],
+        #     [LEADER_GRIPPER_JOINT_MID, FOLLOWER_GRIPPER_JOINT_CLOSE],
+        #     moving_time=0.5,
+        #     dt=dt,
+        # )
         move_grippers(
             [leader_bot, follower_bot],
             [LEADER_GRIPPER_JOINT_MID, FOLLOWER_GRIPPER_JOINT_CLOSE],

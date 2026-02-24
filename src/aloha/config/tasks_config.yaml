@@ -43,28 +43,6 @@ tasks:
     dataset_dir: "~/aloha_data/aloha_solo_plug"  
     episode_len: 500
 
-  gravity_torque_task:
-    dataset_dir: "~/aloha_data/gravity_torque_task"
-    episode_len: 500
-  
-  ## SUCCESSFUL PICK N PLACE
-  picknplace_JAN8_1:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/picknplace_JAN8_1"  
-    episode_len: 500
-
-  ## LEGO INSERT
-  lego_insert:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert"  
-    episode_len: 400
-  
-  lego_insert_v2:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert_v2"  
-    episode_len: 400
-
-  plug_insert:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_insert"  
-    episode_len: 600
-
   ## FOAM TEST for visualizing contact-based forces
   foam_test:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/foam_test"  
@@ -73,50 +51,41 @@ tasks:
 
 ##### SKILL ACT ######
 
-  ## RED THEN ORANGE PICK AND PLACE
-  orange_red_pnp:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/orange_red_pnp"  
-    episode_len: 600
+  # ## RED THEN ORANGE PICK AND PLACE
+  # orange_red_pnp:
+  #   dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/orange_red_pnp"  
+  #   episode_len: 600
 
-  ## RED BLOCK PICK AND PLACE
-  red_pnp:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/red_pnp"  
-    episode_len: 250
-
-  plug_insert:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_insert"  
-    episode_len: 600
-  
-  usb_plug:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/usb_plug"  
-    episode_len: 600
-
-  lego_insert_h:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert_h"  
-    episode_len: 400
+  # ## RED BLOCK PICK AND PLACE
+  # red_pnp:
+  #   dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/red_pnp"  
+  #   episode_len: 250
     
-  ## For analysing Torques and Forces with the new recording script
-  plug_analysis:
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_analysis"  
-    episode_len: 500
+  # ## For analysing Torques and Forces with the new recording script
+  # plug_analysis:
+  #   dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/plug_analysis"  
+  #   episode_len: 500
 
 #### IROS ######
-  lego_insert :
+  lego_insert_h:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert_h"  
+    episode_len: 600
+  lego_insert:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/lego_insert"  
-    episode_len: 600
+    episode_len: 500
 
-  soap_push :
+  soap_push:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/soap_push"  
-    episode_len: 600
+    episode_len: 500
 
-  board_wipe :
+  board_wipe:
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/board_wipe"  
-    episode_len: 600
+    episode_len: 700
 
-  surface_follow :
-    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/surface_follow"  
+  pen_draw:
+    dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/pen_draw"  
     episode_len: 600
 
   usb_plug :
     dataset_dir: "/mnt/c2d9b23a-b03e-4fdb-82ad-59f039ec9e3e/khw/usb_plug"  
-    episode_len: 600
+    episode_len: 1000
