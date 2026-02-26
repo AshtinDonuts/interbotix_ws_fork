@@ -205,6 +205,30 @@ def launch_setup(context, *args, **kwargs):
 
         nodes.append(follower_transform_broadcaster)
 
+        # Add Gravity Compensation Node for follower arm if activated
+        follower_gravity_compensation_node = Node(
+            package="interbotix_gravity_compensation",
+            executable="interbotix_gravity_compensation_node",
+            name="gravity_compensation",
+            namespace=follower["name"],
+            parameters=[
+                {
+                    "motor_specs": PathJoinSubstitution([
+                        FindPackageShare("aloha"),
+                        "config",
+                        f"leader_motor_specs_{follower['orientation']}.yaml",
+                    ])
+                }
+            ],
+            output="screen",
+            condition=AndCondition([
+                IfCondition(LaunchConfiguration("use_gravity_compensation")),
+                IfCondition(LaunchConfiguration("launch_followers")),
+            ]),
+        )
+
+        nodes.append(follower_gravity_compensation_node)
+
         # Add Gravity Torque Computation Node
         # DEC 29
         # Changed this to become a Follower Node

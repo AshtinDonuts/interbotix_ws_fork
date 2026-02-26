@@ -29,6 +29,8 @@ from aloha.robot_utils import (
     FOLLOWER_GRIPPER_JOINT_CLOSE,
     FOLLOWER_GRIPPER_JOINT_OPEN,
     START_ARM_POSE,
+    disable_gravity_compensation,
+    enable_gravity_compensation,
     load_yaml_file,
     move_arms,
     move_grippers,
@@ -140,17 +142,25 @@ def capture_one_episode_no_leader(
     dataset_name: str,
     overwrite: bool,
     torque_base: bool = False,
+    use_follower_gravity_compensation: bool = False,
     config: Dict | None = None,
     get_gravity_torque: bool = False,
     get_dynamics_torque: bool = False,
     exposure: int | None = None,
 ) -> bool:
     """
-    Capture one follower-only episode with torque-disabled follower arm(s).
+    Capture one follower-only episode.
 
     The follower arm(s) are first moved to a standard start pose. After you
-    confirm via the terminal, torque is disabled on the follower arm(s) so you
-    can physically move them. While you move them, this function records:
+    confirm via the terminal, either:
+
+    - Torque is disabled on the follower arm(s) so you can physically move them
+      with no active control (default behavior), or
+    - Follower gravity compensation is enabled via the standard Interbotix
+      gravity compensation interface so that the arms feel weightless while you
+      move them (`use_follower_gravity_compensation=True`).
+
+    While you move the follower arm(s), this function records:
 
     - /observations/qpos, /qvel, /effort
     - Optional /observations/gravity_torque
@@ -217,23 +227,41 @@ def capture_one_episode_no_leader(
         dt=dt,
     )
 
-    # Immediately disable gripper torque so the grippers are backdrivable,
-    # while keeping the arm joints torqued on until the user confirms start.
-    for bot in follower_bots.values():
-        bot.core.robot_torque_enable("single", "gripper", False)
+    if not use_follower_gravity_compensation:
+        # Immediately disable gripper torque so the grippers are backdrivable,
+        # while keeping the arm joints torqued on until the user confirms start.
+        for bot in follower_bots.values():
+            bot.core.robot_torque_enable("single", "gripper", False)
 
-    print("\nFollower-only recording.")
-    print("The follower arm(s) are now in the start pose.")
-    input(
-        "Press ENTER to disable torque on the follower arm(s) and begin recording.\n"
-        "After that, physically move the follower arm(s); data will be recorded for "
-        f"{max_timesteps} timesteps.\n"
-    )
+        print("\nFollower-only recording.")
+        print("The follower arm(s) are now in the start pose.")
+        input(
+            "Press ENTER to disable torque on the follower arm(s) and begin recording.\n"
+            "After that, physically move the follower arm(s); data will be recorded for "
+            f"{max_timesteps} timesteps.\n"
+        )
 
-    # Disable torque on followers so they can be moved freely
-    for bot in follower_bots.values():
-        torque_off(bot)
-    print("Follower torques disabled. Begin moving the follower arm(s).")
+        # Disable torque on followers so they can be moved freely
+        for bot in follower_bots.values():
+            torque_off(bot)
+        print("Follower torques disabled. Begin moving the follower arm(s).")
+    else:
+        print("\nFollower-only recording with follower gravity compensation.")
+        print("The follower arm(s) are now in the start pose.")
+        input(
+            "Press ENTER to ENABLE gravity compensation on the follower arm(s) "
+            "and begin recording.\n"
+            "After that, physically move the follower arm(s); data will be recorded for "
+            f"{max_timesteps} timesteps.\n"
+        )
+
+        print("Enabling follower gravity compensation on:")
+        for name, bot in follower_bots.items():
+            print(f"  - {name}")
+            # Ensure torques are enabled before enabling gravity compensation.
+            torque_on(bot)
+            enable_gravity_compensation(bot)
+        print("Follower gravity compensation enabled. Begin moving the follower arm(s).")
 
     # Derive sizes from the first observation
     initial_obs = env.get_observation()
@@ -332,7 +360,17 @@ def capture_one_episode_no_leader(
         t2 = time.time()
         actual_dt_history.append([t0, t1, t2])
 
-    # Turn torque back on for follower arm(s) immediately after recording
+    # Turn off gravity compensation (if enabled) and ensure follower torques are on
+    if use_follower_gravity_compensation:
+        print("Disabling follower gravity compensation on follower arm(s)...")
+        for name, bot in follower_bots.items():
+            try:
+                disable_gravity_compensation(bot)
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"  Warning: failed to disable gravity compensation on {name}: {exc}"
+                )
+
     for bot in follower_bots.values():
         torque_on(bot)
     print("Follower torques re-enabled on follower arm(s).")
@@ -430,6 +468,12 @@ def main(args) -> None:
     get_gravity_torque = bool(args.get("gravity_torque", False))
     get_dynamics_torque = bool(args.get("dynamics_torque", False))
 
+    # If set, follower gravity compensation is used instead of torque-off to make
+    # the follower arm(s) feel weightless while you move them.
+    use_follower_gravity_compensation = bool(
+        args.get("follower_gravity_compensation", True)
+    )
+
     base_path = Path(__file__).resolve().parent.parent / "config"
 
     # Load robot and task configurations
@@ -473,6 +517,7 @@ def main(args) -> None:
             dataset_name=dataset_name,
             overwrite=overwrite,
             torque_base=torque_base,
+            use_follower_gravity_compensation=use_follower_gravity_compensation,
             config=config,
             get_gravity_torque=get_gravity_torque,
             get_dynamics_torque=get_dynamics_torque,
