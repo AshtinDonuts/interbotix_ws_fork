@@ -4,7 +4,7 @@ ROS_DISTRO=humble
 
 ROS_SETUP_PATH=/opt/ros/$ROS_DISTRO/setup.bash
 WORKSPACE_SETUP_PATH=$HOME/interbotix_ws/install/setup.bash
-RECORD_EPISODES="$HOME/interbotix_ws/src/aloha/scripts/record_episodes.py"
+RECORD_EPISODES="$HOME/interbotix_ws/src/aloha/scripts/record_episodes_no_leader.py"
 RECORD_OVERLAY="$HOME/interbotix_ws/src/aloha/scripts/record_episodes_overlay.py"
 
 source $ROS_SETUP_PATH || exit 1
@@ -12,7 +12,7 @@ source $WORKSPACE_SETUP_PATH || exit 1
 
 print_usage() {
   echo "USAGE:"
-  echo "auto_record_overlay.sh task num_episodes robot_name [-b, --enable_base_torque] [-g, --gravity_compensation] --dynamics_torque"
+  echo "auto_record_overlay_no_leader.sh task num_episodes robot_name [-b, --enable_base_torque] [-g, --gravity_compensation] --dynamics_torque"
 }
 
 nargs="$#"

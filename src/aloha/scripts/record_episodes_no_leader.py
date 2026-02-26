@@ -33,6 +33,7 @@ from aloha.robot_utils import (
     move_arms,
     move_grippers,
     torque_off,
+    torque_on,
 )
 from interbotix_common_modules.common_robot.robot import (
     create_interbotix_global_node,
@@ -216,6 +217,11 @@ def capture_one_episode_no_leader(
         dt=dt,
     )
 
+    # Immediately disable gripper torque so the grippers are backdrivable,
+    # while keeping the arm joints torqued on until the user confirms start.
+    for bot in follower_bots.values():
+        bot.core.robot_torque_enable("single", "gripper", False)
+
     print("\nFollower-only recording.")
     print("The follower arm(s) are now in the start pose.")
     input(
@@ -325,6 +331,11 @@ def capture_one_episode_no_leader(
             time.sleep(remaining)
         t2 = time.time()
         actual_dt_history.append([t0, t1, t2])
+
+    # Turn torque back on for follower arm(s) immediately after recording
+    for bot in follower_bots.values():
+        torque_on(bot)
+    print("Follower torques re-enabled on follower arm(s).")
 
     print(f"Avg fps (wall clock): {max_timesteps / (time.time() - start_time)}")
 
